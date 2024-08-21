@@ -13,10 +13,12 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import br.edu.ifms.dto.TecnicoDTO;
 import br.edu.ifms.entities.Tecnico;
 import br.edu.ifms.repositories.TecnicoRepository;
 import br.edu.ifms.services.exceptions.DataBaseException;
@@ -56,11 +58,62 @@ public class TecnicoServiceTests {
 		
 		//Consultar dadosS
 		Mockito.when(repository.findAll((Pageable)ArgumentMatchers.any())).thenReturn(page);
+		
+		//Consultar por Id
 		Mockito.when(repository.findById(idExistente)).thenReturn(Optional.of(tecnico));
 		Mockito.when(repository.findById(idInexistente)).thenReturn(Optional.empty());
 		
+		
+		
+		
 		//Salvar dados
 		Mockito.when(repository.save(ArgumentMatchers.any())).thenReturn(tecnico);
+		
+		Mockito.when(repository.getReferenceById(idExistente)).thenReturn(tecnico);
+		
+		Mockito.when(repository.getReferenceById(idInexistente)).thenThrow(ResourceNotFoundException.class);
+	}
+	
+	@Test
+	public void updateDeveriaSalvarQuandoIdExistente() {
+		TecnicoDTO dto =  Factory.createTecnicoDTO();
+
+		dto = service.update(idExistente, dto);
+		Assertions.assertNotNull(dto);
+			
+		}
+	@Test
+	public void updateDeveriaLancarResourceNotFoundExceptionQuandoIdInexistente() {
+		TecnicoDTO dto =  Factory.createTecnicoDTO();
+		
+		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+			service.update(idInexistente, dto);
+			
+		});
+	}
+	
+	@Test
+	public void InsertDeveriaSalvarQuandoIdnulo() {
+		TecnicoDTO dto =  Factory.createTecnicoDTO();
+		dto.setId(null);
+		dto = service.insert(dto);
+		Assertions.assertNotNull(dto);
+			
+		}
+
+	
+	@Test
+	public void findAllPagedDeveriaRetornarPagina (){
+		 Pageable pageable = Pageable.ofSize(10);
+	
+	Page<TecnicoDTO> pagina = service.findAllPaged(pageable);
+	Assertions.assertNotNull(pagina);
+	}
+	
+	@Test
+	public void findAllPagedDeveriaRetornarObjetoQuandoIdExistente(){
+		TecnicoDTO dto =  service.findById(idExistente);
+		 Assertions.assertNotNull(dto);
 	}
 	
 	@Test
@@ -94,7 +147,19 @@ public class TecnicoServiceTests {
 		Mockito.verify(repository).deleteById(idInexistente);
 	
 	}
+	
+	@Test
+	public void findByIdDeveriaLancarResourceNotFoundExceptionQuandoIdInexistente() {
+		
+		Assertions.assertThrows(ResourceNotFoundException.class, () -> {
+			service.delete(idInexistente);
+			
+		});
+	}
 }
+	
+
+
 
 
 
