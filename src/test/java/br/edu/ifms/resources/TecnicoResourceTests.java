@@ -5,7 +5,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,7 +54,7 @@ public class TecnicoResourceTests {
 	void setUp() throws Exception {
 		idExistente = 2L;
 		idInexistente = 100L;
-		idDependente = 2L;
+		idDependente = 1L;
 
 		tecnicoDTO = Factory.createTecnicoDTO();
 		page = new PageImpl<>(List.of(tecnicoDTO));
@@ -64,38 +66,53 @@ public class TecnicoResourceTests {
 		// UPDATE
 		when(service.update(eq(idExistente), any())).thenReturn(tecnicoDTO);
 		when(service.update(eq(idInexistente), any())).thenThrow(ResourceNotFoundException.class);
-		
-		//Insert
+
+		// Insert
 		when(service.insert(any())).thenReturn(tecnicoDTO);
-		
-		
-		
-		
-		//Delete
+
+		// Delete
 		doNothing().when(service).delete(idExistente);
 		doThrow(ResourceNotFoundException.class).when(service).delete(idInexistente);
 		doThrow(DataBaseException.class).when(service).delete(idDependente);
 	}
-	
+
+	// INSERT
+	@Test
 	public void insertDeveriaRetornarCreatedCodigo201TecnicoDTO() throws Exception {
 		String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
-		ResultActions result = mocMvc.perform(put("/tecnicos/{id}", idExistente)
-				.content (jsonBody)
-				.contentType(MediaType.APPLICATION_JSON)
+		ResultActions result = mocMvc.perform(post("/tecnicos").content(jsonBody)
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON));
+
+		result.andExpect(status().isCreated());
+		result.andExpect(jsonPath("$.nome").exists());
+
+	}
+
+	// DELETE
+	@Test
+	public void RetornarUmNotFoundCodigo404QuandoIDNaoExistir() throws Exception {
+
+		ResultActions result = mocMvc
+				.perform(delete("/tecnicos/{id}", idInexistente).accept(MediaType.APPLICATION_JSON));
+
+		result.andExpect(status().isNotFound());
+	}
+
+	// DELETE
+	@Test
+	public void retornarUmContentCodigo204QuandoIDExistir() throws Exception {
+			
+		ResultActions result = mocMvc.perform(delete("/tecnicos/{id}", idExistente)
 				.accept(MediaType.APPLICATION_JSON));
 
-		result.andExpect(status().isOk());
-		result.andExpect(jsonPath("$.nome").exists());
+		result.andExpect(status().isNoContent());
 	}
 	
-
 	@Test
 	public void updateDeveriaRetornarTecnicoQuandoIdExistente() throws Exception {
 		String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
-		ResultActions result = mocMvc.perform(put("/tecnicos/{id}", idExistente)
-				.content (jsonBody)
-				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_JSON));
+		ResultActions result = mocMvc.perform(put("/tecnicos/{id}", idExistente).content(jsonBody)
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON));
 
 		result.andExpect(status().isOk());
 		result.andExpect(jsonPath("$.nome").exists());
@@ -104,13 +121,11 @@ public class TecnicoResourceTests {
 	@Test
 	public void updateDeveriaRetornarNotFoundQuandoIdInexistente() throws Exception {
 		String jsonBody = objectMapper.writeValueAsString(tecnicoDTO);
-		ResultActions result = mocMvc.perform(put("/tecnicos/{id}", idInexistente)
-				.content (jsonBody)
-				.contentType(MediaType.APPLICATION_JSON)
-				.accept(MediaType.APPLICATION_JSON));
+		ResultActions result = mocMvc.perform(put("/tecnicos/{id}", idInexistente).content(jsonBody)
+				.contentType(MediaType.APPLICATION_JSON).accept(MediaType.APPLICATION_JSON));
 
 		result.andExpect(status().isNotFound());
-		
+
 	}
 
 	@Test
